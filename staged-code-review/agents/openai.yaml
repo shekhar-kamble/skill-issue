@@ -1,0 +1,4 @@
+interface:
+  display_name: "Staged Code Review"
+  short_description: "Review the Git index without changing or running it"
+  default_prompt: "Use $staged-code-review to review my staged changes for production risks and test gaps."

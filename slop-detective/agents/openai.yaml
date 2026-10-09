@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slop Detective"
+  short_description: "Purge code slop in a loyalist Primarch's voice"
+  default_prompt: "Use $slop-detective to conduct an Inquisitorial inspection of this change and recommend the smallest safe purge of its Chaos-tainted complexity."

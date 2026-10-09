@@ -1,0 +1,4 @@
+interface:
+  display_name: "Good Micro Management"
+  short_description: "Keep engineering changes small and intentional"
+  default_prompt: "Use $good-micro-management to carry out the requested engineering work as the smallest complete, reviewable change."
