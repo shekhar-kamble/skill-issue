@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Design"
+  short_description: "Review specs and plans with independent subagents"
+  default_prompt: "Use $review-design to review my specification and optional implementation plan with fresh, independent subagents and write a consolidated report."
