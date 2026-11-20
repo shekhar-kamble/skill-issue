@@ -75,6 +75,39 @@ on tests, dependencies, infrastructure, and Git operations.
 
 Codex invokes skills with `$skill-name`, and Claude Code and Cursor with `/skill-name`; in other hosts, select the named skill from the picker. Separate spec and readiness reviews are useful for substantial features; when both documents already exist, one review of both is sufficient. No interview or formal plan is required for unrelated small changes.
 
+## Choose models and reasoning per reviewer
+
+Optionally specify a model, reasoning effort, or both for any reviewer in the invocation. The skill has no fixed model choices. Omitted fields use the host's normal defaults, inheriting the parent settings when no host override applies. A model-only override may use the selected model's default reasoning effort. Codex also supports configured subagent defaults and custom agents; see [OpenAI's model and reasoning controls](https://learn.chatgpt.com/docs/agent-configuration/subagents#choosing-models-and-reasoning).
+
+For example, these are illustrative selections, not team defaults:
+
+```text
+Use $review-design on SPEC.md with PLAN.md. Write the report to REVIEW.md.
+
+Use these reviewer settings:
+- Comprehension: model gpt-6-luna, reasoning high
+- Design and readiness: model gpt-6.1-sol, reasoning high
+- Simplicity: model gpt-6.1-sol, reasoning medium
+
+Keep all reviewers in fresh contexts. Report unavailable settings
+instead of substituting. Record requested and effective settings
+for each reviewer, and label effective settings unverified if hidden.
+```
+
+You can override just one role or one field:
+
+```text
+Use $review-design on SPEC.md.
+Use high reasoning for Design and readiness.
+Leave all other settings at their host defaults.
+```
+
+Available models, effort levels, and override controls depend on the host and account. The parent checks the native tool schema and available host metadata and passes selections through real dispatch controls. Putting a model name in a reviewer's prompt does not select that model. For Codex tools exposing `model` and `reasoning_effort`, those are the dispatch fields; `model_reasoning_effort` is the setting used in Codex configuration files. Other hosts may expose different controls or no per-reviewer reasoning override.
+
+If a selection cannot be honored, the affected reviewer remains incomplete and the report explains why. Other independent reviewers can finish. The skill does not silently switch models, lower reasoning, or change host configuration. Requested follow-up reviews reuse the same selections unless you change them.
+
+The report includes a table for each reviewer's requested model and effort, confirmed effective model and effort, and any default, unavailable, or unverified status. Effective values are confirmed only from native tool results or host metadata. Hidden settings remain unverified; a requested value or the reviewer's own claim is not proof of which settings ran. An observed mismatch makes that role incomplete.
+
 ## How the skill is implemented
 
 The implementation consists of [`review-design/SKILL.md`](../review-design/SKILL.md) and [`agents/openai.yaml`](../review-design/agents/openai.yaml). The Markdown file instructs the parent agent to perform the workflow using native tools. The YAML file supplies Codex skill-picker metadata and is ignored by Claude Code and Cursor; it does not create agents or enforce isolation. No service, custom agent configuration, executable orchestration script, or model API integration is required.
@@ -82,7 +115,7 @@ The implementation consists of [`review-design/SKILL.md`](../review-design/SKILL
 The parent performs these steps:
 
 1. Resolve the spec, explicitly requested plan, relevant source areas, project restrictions, and output path. The default spec is `SPEC.md` at the project root; a plan is never silently included.
-2. Inspect the native subagent capability and disable inherited conversation history. For Codex tools exposing `fork_turns`, set it to `"none"`; for tools exposing `fork_context`, set it to `false`. For Claude Code, launch each reviewer with the `Agent` tool using a non-fork type such as `general-purpose`; never `fork`, which inherits the conversation. For Cursor, launch each reviewer with the Task tool; Cursor subagents start with a clean context. Use the host's equivalent elsewhere. Stop if fresh contexts cannot be established.
+2. Inspect the native subagent capability, resolve any per-reviewer model and reasoning overrides, and disable inherited conversation history. For Codex tools exposing `fork_turns`, set it to `"none"`; for tools exposing `fork_context`, set it to `false`. For Claude Code, launch each reviewer with the `Agent` tool using a non-fork type such as `general-purpose`; never `fork`, which inherits the conversation. For Cursor, launch each reviewer with the Task tool; Cursor subagents start with a clean context. Use the host's equivalent elsewhere. Stop if fresh contexts cannot be established; unsupported model or reasoning selections leave the affected role incomplete.
 3. Record document fingerprints and dispatch the three roles below. Each receives absolute paths, its own rubric, restrictions, and reporting requirements. Parallel execution is preferred when capacity permits; sequential execution still requires a fresh context per role.
 4. Wait for each actual result. Verify supporting evidence, check for changed inputs, consolidate duplicate findings, and preserve disagreements and coverage gaps.
 5. Write the report and return its path. Resolve findings or implement only within the user's existing authorization.
@@ -101,7 +134,7 @@ Conversation isolation is a context boundary, not a separate filesystem or secur
 
 By default, the report is `REVIEW.md` beside the spec. An existing report is preserved unless updating it was requested; another unused filename such as `REVIEW-2.md` is used instead.
 
-The report identifies reviewed document versions, reviewer completion and reading scope, the comprehension paraphrase, findings, unresolved questions or disagreements, and verification limits. Findings use project severity conventions, otherwise P1 for serious flaws or blocking ambiguity, P2 for material risks or gaps, and P3 for localized issues with demonstrated impact.
+The report identifies reviewed document versions, reviewer completion and reading scope, requested and effective model and reasoning settings, the comprehension paraphrase, findings, unresolved questions or disagreements, and verification limits. Findings use project severity conventions, otherwise P1 for serious flaws or blocking ambiguity, P2 for material risks or gaps, and P3 for localized issues with demonstrated impact.
 
 Each finding explains where the issue appears, what scenario or ambiguity triggers it, why it matters, the supporting evidence, and a correction when clear. Missing access is reported as incomplete coverage. A reviewer failure, timeout, or stale input cannot produce a clean completed review.
 
